@@ -7,11 +7,9 @@ import {
   Button,
   FormControl,
   Modal,
-  ModalBody,
   ButtonGroup,
   Spinner
 } from "react-bootstrap";
-import Swal from "sweetalert2";
 
 export default class Todos extends Component {
   state = {
@@ -33,7 +31,6 @@ export default class Todos extends Component {
   };
 
   onShow = (id, editValue) => {
-    console.log(editValue);
     this.setState({ show: true, id: id, editValue: editValue });
   };
 
@@ -41,23 +38,37 @@ export default class Todos extends Component {
     this.setState({ show: false, id: "", editValue: "" });
   };
 
-  submitTodo = () => {
-    const newTodo = {
-      id: (this.state.todos.length += 1),
+  submitTodo = async () => {
+    let newId = await (this.state.todos.length += 1);
+    let newTodo = {
+      id: newId,
       name: this.state.value,
-      status: "doing"
+      isNotDone: true,
+      isUrgent: false
     };
-    const todolist = this.state.todos;
-    todolist.push(newTodo);
-    const realTodos = this.state.realTodos;
-    realTodos.push(newTodo);
+
+    let todolist = await this.state.todos;
+
+    await todolist.push(newTodo);
 
     this.setState({
       todos: todolist,
-      realTodos: realTodos,
+      realTodos: [...this.state.realTodos, newTodo],
       value: "",
       id: ""
     });
+
+    // setTimeout(
+    //   function() {
+    //     this.setState({
+    //       todos: todolist,
+    //       realTodos: realTodos,
+    //       value: "",
+    //       id: ""
+    //     });
+    //   }.bind(this),
+    //   1000
+    // );
   };
 
   updateTodo = () => {
@@ -91,13 +102,38 @@ export default class Todos extends Component {
 
     todolist.map(todo => {
       if (todo.id === this.state.id) {
-        todo.status = false;
+        todo.isNotDone = false;
       }
     });
 
     realTodos.map(todo => {
       if (todo.id === this.state.id) {
-        todo.status = false;
+        todo.isNotDone = false;
+      }
+    });
+
+    this.setState({
+      todos: todolist,
+      realTodos: realTodos,
+      editValue: "",
+      id: "",
+      show: false
+    });
+  };
+
+  setToUrgent = () => {
+    let todolist = this.state.todos;
+    let realTodos = this.state.realTodos;
+
+    todolist.map(todo => {
+      if (todo.id === this.state.id) {
+        todo.isUrgent = true;
+      }
+    });
+
+    realTodos.map(todo => {
+      if (todo.id === this.state.id) {
+        todo.isUrgent = true;
       }
     });
 
@@ -111,8 +147,9 @@ export default class Todos extends Component {
   };
 
   deleteTodo = id => {
-    const deleted = this.state.todos.filter(todo => todo.id !== id);
-    const deleted2 = this.state.realTodos.filter(todo => todo.id !== id);
+    let realTodos = this.state.realTodos.filter(todo => todo !== undefined);
+    let deleted = this.state.todos.filter(todo => todo.id !== id);
+    let deleted2 = realTodos.filter(todo => todo.id !== id);
 
     this.setState({
       todos: deleted,
@@ -126,8 +163,8 @@ export default class Todos extends Component {
       isloading: true
     });
 
-    let todolist = this.state.realTodos;
-    let mutated = todolist.filter(todo => todo.status === false);
+    let todolist = this.state.realTodos.filter(todo => todo !== undefined);
+    let mutated = todolist.filter(todo => todo.isNotDone === false);
 
     setTimeout(
       function() {
@@ -142,8 +179,40 @@ export default class Todos extends Component {
       isloading: true
     });
 
-    let todolist = this.state.realTodos;
-    let mutated = todolist.filter(todo => todo.status === true);
+    let todolist = this.state.realTodos.filter(todo => todo !== undefined);
+    let mutated = todolist.filter(todo => todo.isNotDone === true);
+
+    setTimeout(
+      function() {
+        this.setState({ todos: mutated, isloading: false });
+      }.bind(this),
+      1000
+    );
+  };
+
+  filterUrgent = () => {
+    this.setState({
+      isloading: true
+    });
+
+    let todolist = this.state.realTodos.filter(todo => todo !== undefined);
+    let mutated = todolist.filter(todo => todo.isUrgent === true);
+
+    setTimeout(
+      function() {
+        this.setState({ todos: mutated, isloading: false });
+      }.bind(this),
+      1000
+    );
+  };
+
+  filterSlow = () => {
+    this.setState({
+      isloading: true
+    });
+
+    let todolist = this.state.realTodos.filter(todo => todo !== undefined);
+    let mutated = todolist.filter(todo => todo.isUrgent === false);
 
     setTimeout(
       function() {
@@ -160,7 +229,10 @@ export default class Todos extends Component {
 
     setTimeout(
       function() {
-        this.setState({ todos: this.state.realTodos, isloading: false });
+        this.setState({
+          todos: this.state.realTodos.filter(todo => todo !== undefined),
+          isloading: false
+        });
       }.bind(this),
       1000
     );
@@ -168,52 +240,69 @@ export default class Todos extends Component {
 
   componentDidMount = () => {
     const dummyTodo = [
-      { id: 1, name: "Eating", status: true },
-      { id: 4, name: "Sleeping", status: true },
-      { id: 3, name: "Fighting", status: true }
+      { id: 1, name: "Eating", isNotDone: true, isUrgent: false },
+      { id: 2, name: "Sleeping", isNotDone: true, isUrgent: false },
+      { id: 3, name: "Fighting", isNotDone: true, isUrgent: false }
     ];
 
     this.setState({ todos: dummyTodo, realTodos: dummyTodo });
   };
 
   render() {
-    const { todos, value, show, editValue, isloading } = this.state;
+    const { todos, realTodos, value, show, editValue, isloading } = this.state;
 
     return (
       <Fragment>
-        <Row>
-          <Col md={6}>
-            <h1>To-doing</h1>
-          </Col>
-          <Col md={6} style={{ paddingLeft: "10%", paddingTop: 5 }}>
-            <ButtonGroup aria-label="Basic example">
-              <Button
-                onClick={() => this.removeFilter()}
-                variant="outline-primary"
-              >
-                All
-              </Button>
-              <Button
-                onClick={() => this.filterDone()}
-                variant="outline-success"
-              >
-                Done
-              </Button>
-              <Button
-                onClick={() => this.filterUndone()}
-                variant="outline-success"
-              >
-                Undone
-              </Button>
-            </ButtonGroup>
-          </Col>
-        </Row>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            paddingTop: 5
+          }}
+        >
+          <h1 style={{ color: "#34495e" }}>To-doing</h1>
+          <ButtonGroup
+            style={{ height: "10%", paddingTop: 5 }}
+            aria-label="Basic example"
+          >
+            <Button onClick={() => this.removeFilter()} variant="outline-info">
+              All
+            </Button>
+            <Button onClick={() => this.filterDone()} variant="outline-info">
+              Done
+            </Button>
+            <Button onClick={() => this.filterUndone()} variant="outline-info">
+              Undone
+            </Button>
+          </ButtonGroup>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 15
+          }}
+        >
+          <div style={{ width: "10px" }}></div>
+          <ButtonGroup
+            style={{ height: "10%", paddingTop: 5 }}
+            aria-label="Basic example"
+          >
+            <Button onClick={() => this.filterSlow()} variant="info">
+              Slowly
+            </Button>
+            <Button onClick={() => this.filterUrgent()} variant="info">
+              Urgent
+            </Button>
+          </ButtonGroup>
+        </div>
 
         {isloading ? (
-          <Row style={{ height: "70vh" }}>
+          <Row style={{ height: "60vh" }}>
             <Col md={5}></Col>
             <Col md={2}>
-              <Spinner animation="border" role="status">
+              <Spinner animation="border" role="status" variant="info">
                 <span className="sr-only">Loading...</span>
               </Spinner>
             </Col>
@@ -222,13 +311,13 @@ export default class Todos extends Component {
         ) : (
           <Fragment>
             {todos.length > 0 ? (
-              <div style={{ height: "70vh", padding: 0, overflow: "auto" }}>
-                <Row style={{ maxWidth: "103%" }}>
+              <div style={{ height: "60vh", padding: 0, overflow: "auto" }}>
+                <Row style={{ maxWidth: "102%" }}>
                   {todos.map((todo, index) => (
                     <Col key={index} md={12} style={{ paddingRight: 0 }}>
-                      <Alert variant="primary">
+                      <Alert variant="info">
                         <Row>
-                          {todo.status ? (
+                          {todo.isNotDone ? (
                             <Col
                               md={10}
                               onClick={() => this.onShow(todo.id, todo.name)}
@@ -260,9 +349,9 @@ export default class Todos extends Component {
                 </Row>
               </div>
             ) : (
-              <Row style={{ height: "70vh" }}>
+              <Row style={{ height: "60vh" }}>
                 <Col style={{ marginTop: "10vh" }}>
-                  <h3 style={{ color: "#bdc3c7", textAlign: "center" }}>
+                  <h3 style={{ color: "#95a5a6", textAlign: "center" }}>
                     Task not found!
                   </h3>
                 </Col>
@@ -283,7 +372,7 @@ export default class Todos extends Component {
                 onChange={this.onChange}
               />
               <InputGroup.Append>
-                <Button variant="primary" onClick={this.submitTodo}>
+                <Button variant="info" onClick={() => this.submitTodo()}>
                   Add todo
                 </Button>
               </InputGroup.Append>
@@ -291,9 +380,9 @@ export default class Todos extends Component {
           </Col>
         </Row>
 
-        <Modal show={show} onHide={this.onClose}>
+        <Modal show={show} onHide={this.onClose} centered>
           <Modal.Header closeButton>
-            <Modal.Title>Hi what do you want?</Modal.Title>
+            <Modal.Title>Hi, what do you want?</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <FormControl
@@ -309,7 +398,10 @@ export default class Todos extends Component {
             <Button variant="secondary" onClick={this.updateTodo}>
               Edit
             </Button>
-            <Button variant="primary" onClick={this.markAsDone}>
+            <Button variant="outline-info" onClick={this.setToUrgent}>
+              Set to urgent
+            </Button>
+            <Button variant="info" onClick={this.markAsDone}>
               Mark as done
             </Button>
           </Modal.Footer>
