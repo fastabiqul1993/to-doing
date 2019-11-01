@@ -57,18 +57,6 @@ export default class Todos extends Component {
       value: "",
       id: ""
     });
-
-    // setTimeout(
-    //   function() {
-    //     this.setState({
-    //       todos: todolist,
-    //       realTodos: realTodos,
-    //       value: "",
-    //       id: ""
-    //     });
-    //   }.bind(this),
-    //   1000
-    // );
   };
 
   updateTodo = () => {
